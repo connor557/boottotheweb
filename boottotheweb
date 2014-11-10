@@ -17,8 +17,18 @@ do_the_mount()
 
         # ${rootmnt} is our target
 
-        server="serveripgoeshere"
-        filename="imagenamegoeshere"
+        # parse server and filename from /proc/cmdline
+        for x in $(cat /proc/cmdline)
+        do
+                case $x in
+                        server=*)
+                        server="${x//server=}"
+                        ;;
+                        filename=*)
+                        filename="${x//filename=}"
+                        ;;
+                esac
+        done
 
         # download the squash to a tmpfs
         mkdir /httpfs
