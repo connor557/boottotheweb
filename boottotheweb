@@ -1,0 +1,69 @@
+# BootToTheWeb filesystem mounting                      -*- shell-script -*-
+
+# Based on nfs script from Ubuntu initramfs
+# FIXME This needs error checking
+
+retry_nr=0
+
+# do the actual mounting, union and stuff
+do_the_mount()
+{
+
+        configure_networking
+
+        [ "$quiet" != "y" ] && log_begin_msg "Running /scripts/boottotheweb-premount"
+        run_scripts /scripts/boottotheweb-premount
+        [ "$quiet" != "y" ] && log_end_msg
+
+        # ${rootmnt} is our target
+
+        server="serveripgoeshere"
+        filename="imagenamegoeshere"
+
+        # download the squash to a tmpfs
+        mkdir /httpfs
+        mount -t tmpfs -o size=100% none /httpfs
+        [ "$quiet" != "y" ] && log_begin_msg "Downloading the squash to RAM..."
+        wget -O /httpfs/$filename http://$server/$filename
+        [ "$quiet" != "y" ] && log_end_msg
+
+        # loopback mount the squash
+        mkdir /remoteroot
+        mount -o loop -t squashfs /httpfs/$filename /remoteroot
+
+        # make the union with a rw tmpfs
+        mkdir /rw
+        mount -t tmpfs -o size=100% none /rw
+        mount -t aufs -o br=/rw=rw:/remoteroot=ro -o udba=reval none ${rootmnt}
+}
+
+# root mounting
+mountroot()
+{
+        [ "$quiet" != "y" ] && log_begin_msg "Running /scripts/boottotheweb-top"
+        run_scripts /scripts/boottotheweb-top
+        [ "$quiet" != "y" ] && log_end_msg
+
+        modprobe nfs
+        # For DHCP
+        modprobe af_packet
+
+        wait_for_udev 10
+
+        # Default delay is around 180s
+        delay=${ROOTDELAY:-180}
+
+        # loop until nfsmount succeeds
+        do_the_mount
+        while [ ${retry_nr} -lt ${delay} ] && [ ! -e ${rootmnt}${init} ]; do
+                [ "$quiet" != "y" ] && log_begin_msg "Retrying BootToTheWeb mount"
+                read
+                do_the_mount
+                retry_nr=$(( ${retry_nr} + 1 ))
+                [ "$quiet" != "y" ] && log_end_msg
+        done
+
+        [ "$quiet" != "y" ] && log_begin_msg "Running /scripts/boottotheweb-bottom"
+        run_scripts /scripts/boottotheweb-bottom
+        [ "$quiet" != "y" ] && log_end_msg
+}
