@@ -27,6 +27,8 @@ The specified paths for `KERNEL` and `INITRD` will be looked up using HTTP on `S
 
 `http://yourserver/vmlinuz`
 
+If you do not specify an alternate server in the configuration file, the client will look for the kernel and initrd assets on the same server that it retrieved the Boot Configuration information from.
+
 ### Per Client Configuration
 
 Create a configuration file as above, named with the human readable MAC address format, separated with colons and in lowercase. For example, `01:23:45:67:89:ab`. The client will request this file automatically before requesting the default configuration.
