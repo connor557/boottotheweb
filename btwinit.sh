@@ -22,6 +22,21 @@ check_download ()
 	fi
 }
 
+show_menu ()
+{
+	# display a menu
+	clear
+	echo "Please select an OS to start and press <Enter> key:"
+	for x in $(ls /tmp/configs); do
+		echo "$x) `cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`"
+	done
+	read opt
+	cp /tmp/configs/$opt /tmp/config
+	if [ $? -ne 0 ]; then
+		show_menu
+	fi
+}
+
 # begin
 
 echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
@@ -39,14 +54,14 @@ do
                 server=*)
                 server="${x//server=}"
                 ;;
-                http_proxy=*)
-                http_proxy="${x//http_proxy=}"
-                ;;
-                https_proxy=*)
-                https_proxy="${x//https_proxy=}"
+                proxy=*)
+                proxy="${x//proxy=}"
                 ;;
         esac
 done
+
+export http_proxy="$proxy"
+export https_proxy="$proxy"
 
 if [ "$server" = "" ]; then
 	echo "${YELLOW}No source found in /proc/cmdline${NORMAL}"
@@ -71,6 +86,17 @@ for device in $devices "default"; do
 		break
 	fi
 done
+
+# split the config into sections
+mkdir /tmp/configs
+awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
+
+# and display menu if we need to
+if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; do
+	echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
+else
+	show_menu
+fi
 
 # parse values and download payload
 b_server="`cat /tmp/config | grep SERVER | cut -d' ' -f2-`"
@@ -106,8 +132,6 @@ else
 	kexec -l /tmp/kernel --command-line="$b_append" --initrd=/tmp/initrd || end_early
 fi
 
-# clear the screen before kexec
-clear
 kexec -e
 
 # this should be the end, otherwise...

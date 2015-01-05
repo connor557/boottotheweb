@@ -17,11 +17,14 @@ The Boot Configuration Server is responsible for holding information to identify
 A typical configuration file is very similar to the `pxelinux.cfg` format, except that the initrd is split out from the append line, and you specify a server to retrieve the kernel and initrd assets from.
 
 ```
+LABEL Describe this boot option
 SERVER yourserver
 KERNEL vmlinuz
 INITRD core.gz
 APPEND ro nomodeset boot=boottotheweb server=yourserver filename=image.squash
 ```
+
+A label must be included for each entry. If there is more than one entry in the file, a menu will be displayed to the user. If there is only a single entry in the file, it will be booted automatically.
 
 The specified paths for `KERNEL` and `INITRD` will be looked up using HTTP on `SERVER`, i.e. for the example above, the kernel will be retrieved as:
 
