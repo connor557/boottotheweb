@@ -74,13 +74,13 @@ if [ "$b_kernel" = "" ]; then
 	end_early
 else
 	echo "Downloading kernel..."
-	check_download $b_server/$b_kernel -O /tmp/kernel
+	check_download $b_server/$b_kernel /tmp/kernel
 fi
 if [ "$b_initrd" = "" ]; then
 	echo "The configuration source did not provide a initrd"
 else
 	echo "Downloading initrd..."
-	check_download $b_server/$b_initrd -O /tmp/initrd
+	check_download $b_server/$b_initrd /tmp/initrd
 fi
 if [ "$b_append" = "" ]; then
 	echo "The configuration source did not provide any append arguments"
