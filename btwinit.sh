@@ -39,6 +39,12 @@ do
                 server=*)
                 server="${x//server=}"
                 ;;
+                http_proxy=*)
+                http_proxy="${x//http_proxy=}"
+                ;;
+                https_proxy=*)
+                https_proxy="${x//https_proxy=}"
+                ;;
         esac
 done
 
@@ -100,6 +106,8 @@ else
 	kexec -l /tmp/kernel --command-line="$b_append" --initrd=/tmp/initrd || end_early
 fi
 
+# clear the screen before kexec
+clear
 kexec -e
 
 # this should be the end, otherwise...
