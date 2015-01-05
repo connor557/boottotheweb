@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # BootToTheWeb init script
 # Copyright (c) 2015 Joshua Higgins
 # Released under the terms of the GNU GPL v3
