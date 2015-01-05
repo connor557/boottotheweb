@@ -44,7 +44,7 @@ fi
 # download the configuration file
 echo "Downloading configuration from $server"
 
-devices=$(ls /sys/class/net/ | grep -v lo)
+devices=$(ls /sys/class/net/ | grep -v lo | grep -v dummy)
 
 for device in $devices "default"; do
 	if [ "$device" = "default" ]; then
