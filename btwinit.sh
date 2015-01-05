@@ -20,6 +20,10 @@ check_download ()
 	fi
 }
 
+# configure the network
+echo "Configuring network..."
+udhcpc || end_early
+
 # try and get server from /proc/cmdline
 # otherwise use default source
 defaultsource="http://platformctrl.com"
