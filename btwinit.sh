@@ -92,7 +92,7 @@ mkdir /tmp/configs
 awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
 
 # and display menu if we need to
-if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; do
+if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; then
 	echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
 else
 	show_menu
