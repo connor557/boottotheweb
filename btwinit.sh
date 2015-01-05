@@ -51,8 +51,8 @@ for device in $devices "default"; do
 		echo "Getting default config..."
 		address="default"
 	else
-		echo "Device $device has MAC $address, looking for config..."
 		address=`cat /sys/class/net/$device/address`
+		echo "Device $device has MAC $address, looking for config..."
 	fi
 	wget $server/$address -O /tmp/config
 	if [ $? -eq 0 ]; then
