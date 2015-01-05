@@ -3,10 +3,12 @@
 # Copyright (c) 2015 Joshua Higgins
 # Released under the terms of the GNU GPL v3
 
+. /etc/init.d/tc-functions
+
 end_early ()
 {
 	echo ""
-	echo "The system cannot start."
+	echo "${WHITE}The system cannot start.${NORMAL}"
 	read -p "Press [Enter] key to reboot"
 	reboot
 }
@@ -15,13 +17,17 @@ check_download ()
 {
 	wget $1 -O $2
 	if [ $? -ne 0 ]; then
-		echo "There was an error downloading the file $1"
+		echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
 		end_early
 	fi
 }
 
+# begin
+
+echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
+
 # configure the network
-echo "Configuring network..."
+echo "${BLUE}Configuring network...${NORMAL}"
 udhcpc || end_early
 
 # try and get server from /proc/cmdline
@@ -37,22 +43,22 @@ do
 done
 
 if [ "$server" = "" ]; then
-	echo "No source found in /proc/cmdline"
+	echo "${YELLOW}No source found in /proc/cmdline${NORMAL}"
 	server=$defaultsource
 fi
 
 # download the configuration file
-echo "Downloading configuration from $server"
+echo "${BLUE}Downloading configuration from $server${NORMAL}"
 
 devices=$(ls /sys/class/net/ | grep -v lo | grep -v dummy)
 
 for device in $devices "default"; do
 	if [ "$device" = "default" ]; then
-		echo "Getting default config..."
+		echo "${YELLOW}Getting default config...${NORMAL}"
 		address="default"
 	else
 		address=`cat /sys/class/net/$device/address`
-		echo "Device $device has MAC $address, looking for config..."
+		echo "${BLUE}Device ${YELLOW}$device ${BLUE}has MAC {$YELLOW}$address${BLUE}, looking for config...${NORMAL}"
 	fi
 	wget $server/$address -O /tmp/config
 	if [ $? -eq 0 ]; then
@@ -70,24 +76,24 @@ if [ "$b_server" = "" ]; then
 	b_server=$server
 fi
 if [ "$b_kernel" = "" ]; then
-	echo "The configuration source did not provide a kernel"
+	echo "${RED}The configuration source did not provide a kernel${NORMAL}"
 	end_early
 else
-	echo "Downloading kernel..."
+	echo "${BLUE}Downloading kernel...${NORMAL}"
 	check_download $b_server/$b_kernel /tmp/kernel
 fi
 if [ "$b_initrd" = "" ]; then
-	echo "The configuration source did not provide a initrd"
+	echo "The configuration source did not provide a initrd${NORMAL}"
 else
-	echo "Downloading initrd..."
+	echo "${BLUE}Downloading initrd...${NORMAL}"
 	check_download $b_server/$b_initrd /tmp/initrd
 fi
 if [ "$b_append" = "" ]; then
-	echo "The configuration source did not provide any append arguments"
+	echo "${YELLOW}The configuration source did not provide any append arguments${NORMAL}"
 fi
 
 # do the kexec
-echo "Preparing to kexec the new kernel..."
+echo "${BLUE}Preparing to kexec the new kernel...${NORMAL}"
 if [ "$b_initrd" = "" ]; then
 	kexec -l /tmp/kernel --command-line="$b_append" || end_early
 else
@@ -98,5 +104,5 @@ kexec -e
 
 # this should be the end, otherwise...
 
-echo "The new kernel failed to load."
+echo "${RED}The new kernel failed to load.${NORMAL}"
 end_early
