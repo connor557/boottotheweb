@@ -68,7 +68,7 @@ show_menu ()
 m_echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
 
 # configure the network
-m_m_echo "${BLUE}Configuring network...${NORMAL}"
+m_echo "${BLUE}Configuring network...${NORMAL}"
 udhcpc || end_early
 
 # try and get server from /proc/cmdline
