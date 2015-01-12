@@ -30,9 +30,18 @@ end_early ()
 	reboot
 }
 
+prepend_http () {
+	echo "$1" | grep "http://" > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+		echo "http://$1"
+	else
+		echo "$1"
+	fi
+}
+
 check_download ()
 {
-	wget $1 -O $2
+	wget `prepend_http $1` -O $2
 	if [ $? -ne 0 ]; then
 		e_echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
 		end_early
@@ -90,7 +99,7 @@ for device in $devices "default"; do
 		address=`cat /sys/class/net/$device/address`
 		m_echo "${BLUE}Device ${YELLOW}$device ${BLUE}has MAC ${YELLOW}$address${BLUE}, looking for config...${NORMAL}"
 	fi
-	wget $server/$address -O /tmp/config
+	wget `prepend_http $server/$address` -O /tmp/config
 	if [ $? -eq 0 ]; then
 		break
 	fi
