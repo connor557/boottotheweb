@@ -5,10 +5,27 @@
 
 . /etc/init.d/tc-functions
 
+m_echo ()
+{
+	# show all messages above loglevel 3
+	# loglevel 3 is default (hide messages, show errors)
+	if [ `getbootparam loglevel` -gt 3 ]; then
+		echo $@
+	fi
+}
+
+e_echo ()
+{
+	# show errors above loglevel 2
+	if [ `getbootparam loglevel` -gt 2 ]; then
+		echo $@
+	fi
+}
+
 end_early ()
 {
-	echo ""
-	echo "${WHITE}The system cannot start.${NORMAL}"
+	e_echo ""
+	e_echo "${WHITE}The system cannot start.${NORMAL}"
 	read -p "Press [Enter] key to reboot"
 	reboot
 }
@@ -17,7 +34,7 @@ check_download ()
 {
 	wget $1 -O $2
 	if [ $? -ne 0 ]; then
-		echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
+		e_echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
 		end_early
 	fi
 }
@@ -39,47 +56,39 @@ show_menu ()
 
 # begin
 
-echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
+m_echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
 
 # configure the network
-echo "${BLUE}Configuring network...${NORMAL}"
+m_m_echo "${BLUE}Configuring network...${NORMAL}"
 udhcpc || end_early
 
 # try and get server from /proc/cmdline
 # otherwise use default source
 defaultsource="http://platformctrl.com"
-for x in $(cat /proc/cmdline || echo server=$defaultsource)
-do
-        case $x in
-                server=*)
-                server="${x//server=}"
-                ;;
-                proxy=*)
-                proxy="${x//proxy=}"
-                ;;
-        esac
-done
 
-export http_proxy="$proxy"
-export https_proxy="$proxy"
+server="`getbootparam server`"
 
 if [ "$server" = "" ]; then
-	echo "${YELLOW}No source found in /proc/cmdline${NORMAL}"
+	m_echo "${YELLOW}No source found in /proc/cmdline${NORMAL}"
 	server=$defaultsource
 fi
 
+# get proxy
+export http_proxy="`getbootparam proxy`"
+export https_proxy="`getbootparam proxy`"
+
 # download the configuration file
-echo "${BLUE}Downloading configuration from $server${NORMAL}"
+m_echo "${BLUE}Downloading configuration from $server${NORMAL}"
 
 devices=$(ls /sys/class/net/ | grep -v lo | grep -v dummy)
 
 for device in $devices "default"; do
 	if [ "$device" = "default" ]; then
-		echo "${YELLOW}Getting default config...${NORMAL}"
+		m_echo "${YELLOW}Getting default config...${NORMAL}"
 		address="default"
 	else
 		address=`cat /sys/class/net/$device/address`
-		echo "${BLUE}Device ${YELLOW}$device ${BLUE}has MAC ${YELLOW}$address${BLUE}, looking for config...${NORMAL}"
+		m_echo "${BLUE}Device ${YELLOW}$device ${BLUE}has MAC ${YELLOW}$address${BLUE}, looking for config...${NORMAL}"
 	fi
 	wget $server/$address -O /tmp/config
 	if [ $? -eq 0 ]; then
@@ -93,7 +102,7 @@ awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
 
 # and display menu if we need to
 if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; then
-	echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
+	m_echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
 else
 	show_menu
 fi
@@ -108,24 +117,24 @@ if [ "$b_server" = "" ]; then
 	b_server=$server
 fi
 if [ "$b_kernel" = "" ]; then
-	echo "${RED}The configuration source did not provide a kernel${NORMAL}"
+	e_echo "${RED}The configuration source did not provide a kernel${NORMAL}"
 	end_early
 else
-	echo "${BLUE}Downloading kernel...${NORMAL}"
+	m_echo "${BLUE}Downloading kernel...${NORMAL}"
 	check_download $b_server/$b_kernel /tmp/kernel
 fi
 if [ "$b_initrd" = "" ]; then
-	echo "The configuration source did not provide a initrd${NORMAL}"
+	m_echo "The configuration source did not provide a initrd${NORMAL}"
 else
-	echo "${BLUE}Downloading initrd...${NORMAL}"
+	m_echo "${BLUE}Downloading initrd...${NORMAL}"
 	check_download $b_server/$b_initrd /tmp/initrd
 fi
 if [ "$b_append" = "" ]; then
-	echo "${YELLOW}The configuration source did not provide any append arguments${NORMAL}"
+	m_echo "${YELLOW}The configuration source did not provide any append arguments${NORMAL}"
 fi
 
 # do the kexec
-echo "${BLUE}Preparing to kexec the new kernel...${NORMAL}"
+m_echo "${BLUE}Preparing to kexec the new kernel...${NORMAL}"
 if [ "$b_initrd" = "" ]; then
 	kexec -l /tmp/kernel --command-line="$b_append" || end_early
 else
@@ -136,5 +145,5 @@ kexec -e
 
 # this should be the end, otherwise...
 
-echo "${RED}The new kernel failed to load.${NORMAL}"
+e_echo "${RED}The new kernel failed to load.${NORMAL}"
 end_early
