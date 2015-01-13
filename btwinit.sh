@@ -81,6 +81,9 @@ show_menu ()
 
 # begin
 
+# generate default dialogrc
+dialog --create-rc ~/.dialogrc
+
 m_echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
 
 # configure the network
