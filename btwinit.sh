@@ -14,6 +14,18 @@ m_echo ()
 	fi
 }
 
+d_echo ()
+{
+	# show in a dialog at loglevel 3
+	if [ `getbootparam loglevel` -eq 3 ]; then
+		length=`expr length "$1" + 3`
+		dialog --infobox "$1" 3 $length
+	else
+		# otherwise pass to m_echo
+		m_echo $1
+	fi
+}
+
 e_echo ()
 {
 	# show errors above loglevel 2
@@ -41,7 +53,8 @@ prepend_http () {
 
 check_download ()
 {
-	wget `prepend_http $1` -O $2
+	output="$(wget `prepend_http $1` -O $2 2>&1)"
+	m_echo $output
 	if [ $? -ne 0 ]; then
 		e_echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
 		end_early
@@ -52,7 +65,7 @@ show_menu ()
 {
 	# display a menu
 	clear
-	echo "Please select an OS to start and press <Enter> key:"
+	echo "Select an OS to start and press <Enter> key:"
 	for x in $(ls /tmp/configs); do
 		echo "$x) `cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`"
 	done
@@ -68,8 +81,9 @@ show_menu ()
 m_echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
 
 # configure the network
-m_echo "${BLUE}Configuring network...${NORMAL}"
-udhcpc || end_early
+d_echo "Configuring network..."
+output="$(udhcpc 2>&1)" || end_early
+m_echo $output
 
 # try and get server from /proc/cmdline
 # otherwise use default source
@@ -87,7 +101,7 @@ export http_proxy="`getbootparam proxy`"
 export https_proxy="`getbootparam proxy`"
 
 # download the configuration file
-m_echo "${BLUE}Downloading configuration from $server${NORMAL}"
+d_echo "Downloading configuration from $server"
 
 devices=$(ls /sys/class/net/ | grep -v lo | grep -v dummy)
 
@@ -99,8 +113,10 @@ for device in $devices "default"; do
 		address=`cat /sys/class/net/$device/address`
 		m_echo "${BLUE}Device ${YELLOW}$device ${BLUE}has MAC ${YELLOW}$address${BLUE}, looking for config...${NORMAL}"
 	fi
-	wget `prepend_http $server/$address` -O /tmp/config
-	if [ $? -eq 0 ]; then
+	output="$(wget `prepend_http $server/$address` -O /tmp/config 2>&1)"
+	status=$?
+	m_echo $output
+	if [ $status -eq 0 ]; then
 		# wget didn't get an error, check for 404
 		if [ "`cat /tmp/config`" = "404" ]; then
 			m_echo "${YELLOW}No config for this device.${NORMAL}"
@@ -136,13 +152,13 @@ if [ "$b_kernel" = "" ]; then
 	e_echo "${RED}The configuration source did not provide a kernel${NORMAL}"
 	end_early
 else
-	m_echo "${BLUE}Downloading kernel...${NORMAL}"
+	d_echo "Downloading kernel..."
 	check_download $b_server/$b_kernel /tmp/kernel
 fi
 if [ "$b_initrd" = "" ]; then
 	m_echo "The configuration source did not provide a initrd${NORMAL}"
 else
-	m_echo "${BLUE}Downloading initrd...${NORMAL}"
+	d_echo "Downloading initrd..."
 	check_download $b_server/$b_initrd /tmp/initrd
 fi
 if [ "$b_append" = "" ]; then
@@ -150,7 +166,7 @@ if [ "$b_append" = "" ]; then
 fi
 
 # do the kexec
-m_echo "${BLUE}Preparing to kexec the new kernel...${NORMAL}"
+d_echo "Preparing to boot..."
 if [ "$b_initrd" = "" ]; then
 	kexec -l /tmp/kernel --command-line="$b_append" || end_early
 else
