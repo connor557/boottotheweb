@@ -79,6 +79,18 @@ show_menu ()
 	fi
 }
 
+show_dialog_menu () {
+	choices=""
+	for x in $(ls /tmp/configs); do
+		choices="$choices $x \"`cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`\""
+	done
+	dialog --nocancel --backtitle "webbootcore Bootstrap" --menu "Please select an OS to start" 0 0 0 $choices 2> /tmp/choices
+	cp /tmp/configs/`cat /tmp/choice` /tmp/config
+	if [ $? -ne 0 ]; then
+		show_dialog_menu
+	fi
+}
+
 # begin
 
 # generate default dialogrc
@@ -142,7 +154,7 @@ awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
 if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; then
 	m_echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
 else
-	show_menu
+	show_dialog_menu
 fi
 
 # parse values and download payload
