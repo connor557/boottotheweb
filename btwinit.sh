@@ -101,7 +101,14 @@ for device in $devices "default"; do
 	fi
 	wget `prepend_http $server/$address` -O /tmp/config
 	if [ $? -eq 0 ]; then
-		break
+		# wget didn't get an error, check for 404
+		if [ "`cat /tmp/config`" = "404" ]; then
+			m_echo "${YELLOW}No config for this device.${NORMAL}"
+		else
+			break
+		fi
+	else
+		m_echo "${YELLOW}No config for this device.${NORMAL}"
 	fi
 done
 
