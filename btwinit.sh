@@ -18,7 +18,7 @@ d_echo ()
 {
 	# show in a dialog at loglevel 3
 	if [ `getbootparam loglevel` -eq 3 ]; then
-		length=`expr length "$1" + 3`
+		length=`expr length "$1" + 4`
 		dialog --infobox "$1" 3 $length
 	else
 		# otherwise pass to m_echo
@@ -64,7 +64,10 @@ check_download ()
 show_menu ()
 {
 	# display a menu
-	clear
+	if [ `getbootparam loglevel` -lt 4 ]; then
+		# preserve boot messages before menu if loglevel >= 4
+		clear
+	fi
 	echo "Select an OS to start and press <Enter> key:"
 	for x in $(ls /tmp/configs); do
 		echo "$x) `cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`"
