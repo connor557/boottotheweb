@@ -84,7 +84,8 @@ show_dialog_menu () {
 	for x in $(ls /tmp/configs); do
 		choices="$choices $x \"`cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`\""
 	done
-	dialog --nocancel --backtitle "webbootcore Bootstrap" --menu "Please select an OS to start" 0 0 0 $choices 2> /tmp/choices
+	echo "dialog --nocancel --menu \"Please select an OS to start\" 0 0 0 $choices 2> /tmp/choice" /tmp/menu
+	sh /tmp/menu
 	cp /tmp/configs/`cat /tmp/choice` /tmp/config
 	if [ $? -ne 0 ]; then
 		show_dialog_menu
@@ -147,7 +148,7 @@ for device in $devices "default"; do
 done
 
 # split the config into sections
-mkdir /tmp/configs
+mkdir -p /tmp/configs
 awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
 
 # and display menu if we need to
