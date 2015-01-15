@@ -5,11 +5,14 @@
 
 . /etc/init.d/tc-functions
 
+MESSAGE_LEVEL=3
+ERROR_LEVEL=2
+
 m_echo ()
 {
 	# show all messages above loglevel 3
 	# loglevel 3 is default (hide messages, show errors)
-	if [ `getbootparam loglevel` -gt 3 ]; then
+	if [ `getbootparam loglevel` -gt $MESSAGE_LEVEL ]; then
 		echo $@
 	fi
 }
@@ -17,7 +20,7 @@ m_echo ()
 d_echo ()
 {
 	# show in a dialog at loglevel 3
-	if [ `getbootparam loglevel` -eq 3 ]; then
+	if [ `getbootparam loglevel` -eq $MESSAGE_LEVEL ]; then
 		length=`expr length "$1" + 4`
 		dialog --infobox "$1" 3 $length
 	else
@@ -29,7 +32,7 @@ d_echo ()
 e_echo ()
 {
 	# show errors above loglevel 2
-	if [ `getbootparam loglevel` -gt 2 ]; then
+	if [ `getbootparam loglevel` -gt $ERROR_LEVEL ]; then
 		echo $@
 	fi
 }
@@ -53,8 +56,11 @@ prepend_http () {
 
 check_download ()
 {
-	output="$(wget `prepend_http $1` -O $2 2>&1)"
-	m_echo $output
+	if [ `getbootparam loglevel` -gt $MESSAGE_LEVEL ]; then
+		wget `prepend_http $1` -O $2
+	else
+		wget `prepend_http $1` -O $2 2>&1 > /dev/null
+	fi
 	if [ $? -ne 0 ]; then
 		e_echo "${RED}There was an error downloading the file ${YELLOW}$1${NORMAL}"
 		end_early
@@ -63,11 +69,6 @@ check_download ()
 
 show_menu ()
 {
-	# display a menu
-	if [ `getbootparam loglevel` -lt 4 ]; then
-		# preserve boot messages before menu if loglevel >= 4
-		clear
-	fi
 	echo "Select an OS to start and press <Enter> key:"
 	for x in $(ls /tmp/configs); do
 		echo "$x) `cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`"
@@ -84,7 +85,7 @@ show_dialog_menu () {
 	for x in $(ls /tmp/configs); do
 		choices="$choices $x \"`cat /tmp/configs/$x | grep LABEL | cut -d' ' -f2-`\""
 	done
-	echo "dialog --nocancel --menu \"Please select an OS to start\" 0 0 0 $choices 2> /tmp/choice" > /tmp/menu
+	echo "dialog --nocancel --menu \"Select an OS to start\" 0 0 0 $choices 2> /tmp/choice" > /tmp/menu
 	sh /tmp/menu
 	cp /tmp/configs/`cat /tmp/choice` /tmp/config
 	if [ $? -ne 0 ]; then
@@ -101,8 +102,11 @@ m_echo "${GREEN}BootToTheWeb ${YELLOW}version 1.0${NORMAL}"
 
 # configure the network
 d_echo "Configuring network..."
-output="$(udhcpc 2>&1)" || end_early
-m_echo $output
+if [ `getbootparam loglevel` -gt $MESSAGE_LEVEL ]; then
+	udhcpc || end_early
+else
+	udhcpc 2>&1 > /dev/null || end_early
+fi
 
 # try and get server from /proc/cmdline
 # otherwise use default source
@@ -155,7 +159,14 @@ awk '/LABEL/{n++}{print >"/tmp/configs/"n }' /tmp/config
 if [ "`ls -1 /tmp/configs/ | wc -l`" = "1" ]; then
 	m_echo "${BLUE}Only one boot item specified, skipping menu...${NORMAL}"
 else
-	show_dialog_menu
+	# display a menu
+	if [ `getbootparam loglevel` -gt $MESSAGE_LEVEL ]; then
+		# preserve boot messages and show basic menu at loglevel > 3
+		show_menu
+	else
+		# show dialog menu at loglevel <= 3
+		show_dialog_menu
+	fi
 fi
 
 # parse values and download payload
